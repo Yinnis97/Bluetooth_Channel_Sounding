@@ -1,0 +1,10 @@
+identifier: nrf54l15/nrf54l15/cpuflpr
+name: nrf54l15
+vendor: nordic
+arch: riscv
+toolchain:
+  - zephyr
+sysbuild: true
+ram: 96
+flash: 96
+supported: []
