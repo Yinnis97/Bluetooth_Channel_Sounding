@@ -1,11 +1,10 @@
 
-# Bluetooth Channel Sounding
+# **Bluetooth Channel Sounding**
 
-## Setup
+## **Setup**
 
 ### Creating a board
-
-- Create a new board for future use, not sure if this is neccesary.   
+ 
 - We'll be using the nrf54l15.
 
 ### Build configuration
@@ -14,8 +13,7 @@
     - nRF Connect
     - Create a new application
     - Copy a sample (Why wouldn't you)
-    - When picking samples make sure to pick from the zephyr/samples folder.    
-        For some reason the nrf folder ends up with tons of build errors, cba to figure it out.
+    - When picking samples make sure to pick from the **nrf** examples.  
     - It's normal for your source files to contain errors, we'll have to add a build configuration first.
 
 2. Add the build configuration
@@ -27,13 +25,44 @@
     - You won't need to change much, only add the following :
         - Only add base configuration files : **prj.conf**
         - Change board to **nrf54l15dk/nrf54l15/cpuapp**
-        - Leave the rest empty
-
-3. Extra
-
-    - We'll have to delete the source files that are not needed, because for some reason it loads all of them instead of only the ones we need.
-    - We'll want to be using the **connected_cs** example (for more info read the nordic readme).
+        - Leave the rest empty.
  
+
+## **Distance Methods**
+
+### 1. RTT
+**The time it takes for a signal to travel from Initiator → Reflector → back to Initiator**     
+1. Initiator sends signal at time T1  
+2. Reflector receives at T2, immediately responds   
+3. Initiator receives response at T3    
+
+**Distance = (T3 - T1) × speed_of_light / 2**
+
+### 2. Phase Slope (Phase-Based Ranging)
+
+**What it measures:**   
+How the phase of the carrier signal changes across different frequencies  
+
+**How it works:**   
+Channel Sounding transmits signals on multiple frequencies (channels). As radio waves travel, their phase shifts depending on distance. By comparing phase differences across frequencies, you can calculate distance:  
+
+Signal at frequency f1: phase = φ1  
+Signal at frequency f2: phase = φ2  
+Signal at frequency f3: phase = φ3  
+Phase slope = Δφ / Δf   
+**Distance = (phase_slope × speed_of_light) / (2π)**    
+
+**Tip :** Think of it like measuring ripples in a pond at different distances, the pattern tells you how far the wave has traveled.
+
+### 3. IFFT (Inverse Fast Fourier Transform / Frequency Domain)
+
+**What it measures:**   
+The channel impulse response – essentially creates a "picture" of all signal paths
+
+**How it works:**   
+By transmitting on many different frequencies and analyzing the combined frequency response, IFFT converts this into a time-domain representation showing signal arrivals:
+
+
 ## Extra Information
 
 [Github Repo Nordic : Channel Sounding]( https://github.com/zephyrproject-rtos/zephyr/blob/main/samples/bluetooth/channel_sounding/README.rst)
@@ -43,3 +72,5 @@
 [Robert Jansen](https://github.com/jalektro)     
 [Niels Franssens](https://github.com/FRniels)   
 [Yinnis Kempeneers](https://github.com/Yinnis97)    
+
+
