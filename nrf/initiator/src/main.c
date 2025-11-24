@@ -519,6 +519,75 @@ BT_CONN_CB_DEFINE(conn_cb) = {
 	.le_cs_subevent_data_available = subevent_result_cb,
 };
 
+#define DISTANCE_ARRAY_SIZE 5
+
+void main_loop(void)
+{
+	k_sleep(K_MSEC(5000));
+	cs_de_dist_estimates_t distance_on_ap_;
+	cs_de_dist_estimates_t distance_on_ap[DISTANCE_ARRAY_SIZE];
+
+	distance_on_ap_.ifft = 0.f;
+	distance_on_ap_.rtt = 0.f;
+	distance_on_ap_.phase_slope = 0.f;
+	LOG_INF("INIT");
+
+	// Fill the entire array first.
+	for (uint8_t ap = 0; ap < MAX_AP; ap++) 
+	{
+		for(size_t i = 0 ; i < DISTANCE_ARRAY_SIZE ; i++)
+		{
+			distance_on_ap[i] = get_distance(ap);
+			LOG_INF("INIT LOOP %d",i);
+		}
+	}
+	LOG_INF("Fill array %f, %f, %f",(double)distance_on_ap[0].ifft,(double)distance_on_ap[1].ifft,(double)distance_on_ap[4].ifft);
+
+	while (true) 
+	{
+		k_sleep(K_MSEC(2000));
+
+		if (buffer_num_valid != 0) 
+		{
+			for (uint8_t ap = 0; ap < MAX_AP; ap++) 
+			{
+				// Moving average 
+				for(size_t i = 1 ; i < DISTANCE_ARRAY_SIZE ; i++)
+				{
+					distance_on_ap[i-1] = distance_on_ap[i];
+				}
+				LOG_INF("Moving average = %f, %f, %f",(double)distance_on_ap[0].ifft,(double)distance_on_ap[1].ifft,(double)distance_on_ap[4].ifft);
+
+				// Fill last space with new value.
+				distance_on_ap[DISTANCE_ARRAY_SIZE-1] = get_distance(ap);
+				LOG_INF("New value = %f",(double)distance_on_ap[DISTANCE_ARRAY_SIZE-1].ifft);
+
+				// Put in buffer
+				for(size_t i = 0 ; i < DISTANCE_ARRAY_SIZE ; i++)
+				{
+					distance_on_ap_.ifft += distance_on_ap[i].ifft;
+					distance_on_ap_.phase_slope += distance_on_ap[i].phase_slope;
+					distance_on_ap_.rtt += distance_on_ap[i].rtt;
+				}
+				LOG_INF("Buffer (Not divided yet) = %f, %f, %f",(double)distance_on_ap_.ifft,(double)distance_on_ap_.phase_slope,(double)distance_on_ap_.rtt);
+
+				// Take average.
+				distance_on_ap_.ifft = distance_on_ap_.ifft / (float)DISTANCE_ARRAY_SIZE;
+				distance_on_ap_.phase_slope = distance_on_ap_.phase_slope / (float)DISTANCE_ARRAY_SIZE;
+				distance_on_ap_.rtt = distance_on_ap_.rtt / (float)DISTANCE_ARRAY_SIZE;
+
+				// Print
+				LOG_INF("Distance estimates on antenna path %u: ifft: %f, "
+					"phase_slope: %f, rtt: %f",
+					ap, (double)distance_on_ap_.ifft,
+					(double)distance_on_ap_.phase_slope,
+					(double)distance_on_ap_.rtt);
+			}
+		}
+
+		LOG_INF("Sleeping for a few seconds...");
+	}
+}
 int main(void)
 {
 	int err;
@@ -703,26 +772,7 @@ int main(void)
 		return 0;
 	}
 
-	while (true) 
-	{
-		k_sleep(K_MSEC(5000));
-
-		if (buffer_num_valid != 0) {
-			for (uint8_t ap = 0; ap < MAX_AP; ap++) 
-			{
-				cs_de_dist_estimates_t distance_on_ap = get_distance(ap);
-
-				LOG_INF("Distance estimates on antenna path %u: ifft: %f, "
-					"phase_slope: %f, rtt: %f, best: %f",
-					ap, (double)distance_on_ap.ifft,
-					(double)distance_on_ap.phase_slope,
-					(double)distance_on_ap.rtt,
-					(double)distance_on_ap.best);
-			}
-		}
-
-		LOG_INF("Sleeping for a few seconds...");
-	}
+	main_loop();
 
 	return 0;
 }
